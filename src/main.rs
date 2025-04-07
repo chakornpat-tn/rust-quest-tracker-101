@@ -1,4 +1,5 @@
 use rust_quest_tracker::config::{config_loader, config_models::DotEnvyConfig};
+use rust_quest_tracker::infrastructure::postgres::{postgres_connector};
 use tracing::{error, info};
 
 #[tokio::main]
@@ -16,4 +17,14 @@ async fn main() {
     };
 
     info!("Env has been loaded");
+
+    let postgres_pool =  match postgres_connector::establish_connection(&dotenvy_env.database.url) {
+        Ok(pool) => pool,
+        Err(e) => {
+            error!("Failed to establish connection to Postgres: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    info!("Postgres connection pool has been established");
 }
