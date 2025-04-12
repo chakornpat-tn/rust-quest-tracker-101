@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::async_trait;
-use mockall::automock;
 
 use crate::{
     domain::{
