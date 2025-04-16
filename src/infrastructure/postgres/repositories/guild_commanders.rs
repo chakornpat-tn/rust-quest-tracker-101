@@ -10,18 +10,18 @@ use crate::{
     infrastructure::postgres::postgres_connector::PgPoolSquad,
 };
 
-pub struct CrewSwitchboardPostgres {
+pub struct GuildCommandersPostgres {
     db_pool: Arc<PgPoolSquad>,
 }
 
-impl CrewSwitchboardPostgres {
+impl GuildCommandersPostgres {
     pub fn new(db_pool: Arc<PgPoolSquad>) -> Self {
         Self { db_pool }
     }
 }
 
 #[async_trait]
-impl GuildCommandersRepository for CrewSwitchboardPostgres {
+impl GuildCommandersRepository for GuildCommandersPostgres {
     async fn register(
         &self,
         register_guild_commander_entity: RegisterGuildCommanderEntity,
