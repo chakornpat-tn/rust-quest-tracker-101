@@ -1,4 +1,4 @@
-use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::post, Json, Router};
 use std::sync::Arc;
 
 use crate::{
@@ -23,10 +23,20 @@ pub fn routers(db_pool: Arc<PgPoolSquad>) -> Router {
 
 pub async fn register<T>(
     State(guild_commanders_use_case): State<Arc<GuildCommandersUsecase<T>>>,
-    Json(register_adventurer_model): Json<RegisterGuildCommanderModel>,
+    Json(register_guild_commander): Json<RegisterGuildCommanderModel>,
 ) -> impl IntoResponse
 where
     T: GuildCommandersRepository + Send + Sync,
 {
-    unimplemented!()
+    match guild_commanders_use_case
+        .register(register_guild_commander)
+        .await
+    {
+        Ok(guild_commander_id) => (
+            StatusCode::OK,
+            format!("register guild commander success: {}", guild_commander_id),
+        )
+            .into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
 }
