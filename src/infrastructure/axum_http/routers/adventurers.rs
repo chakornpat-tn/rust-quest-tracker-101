@@ -1,4 +1,4 @@
-use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::post, Json, Router};
 use std::sync::Arc;
 
 use crate::{
@@ -28,6 +28,15 @@ pub async fn register<T>(
 where
     T: AdventurersRepository + Send + Sync,
 {
-    unimplemented!()
+    match adventurers_use_case
+        .register(register_adventurer_model)
+        .await
+    {
+        Ok(adventurer_id) => (
+            StatusCode::OK,
+            format!("register adventurer success: {}", adventurer_id),
+        )
+            .into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
 }
-
