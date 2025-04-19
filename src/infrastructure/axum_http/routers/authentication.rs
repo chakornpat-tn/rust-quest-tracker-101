@@ -1,10 +1,18 @@
 use std::sync::Arc;
 
-use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
-use axum_extra::extract::CookieJar;
+use axum::{
+    extract::State,
+    http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::IntoResponse,
+    routing::post,
+    Json, Router,
+};
+use axum_extra::extract::cookie::{Cookie, CookieJar};
+use cookie::time::Duration;
 
 use crate::{
-    application::usecases::authentication::{self, AuthenticationUsecase},
+    application::usecases::authentication::AuthenticationUsecase,
+    config::{config_loader::get_stage, stage::Stage},
     domain::repositories::{
         adventurers::AdventurersRepository, guild_commanders::GuildCommandersRepository,
     },
@@ -31,9 +39,9 @@ pub fn routes(db_pool: Arc<PgPoolSquad>) -> Router {
             "/adventurers/refresh-token",
             post(adventurers_refresh_token),
         )
-        .route("/guild_commanders/login", post(guild_commanders_login))
+        .route("/guild-commanders/login", post(guild_commanders_login))
         .route(
-            "/guild_commanders/refresh-token",
+            "/guild-commanders/refresh-token",
             post(guild_commanders_refresh_token),
         )
         .with_state(Arc::new(authentication_use_case))
@@ -47,9 +55,41 @@ where
     T1: AdventurersRepository + Send + Sync,
     T2: GuildCommandersRepository + Send + Sync,
 {
-    unimplemented!()
-}
+    match authentication_use_case.adventurer_login(login_model).await {
+        Ok(passport) => {
+            let mut act_cookie = Cookie::build(("act", passport.access_token.clone()))
+                .path("/")
+                .same_site(cookie::SameSite::Lax)
+                .http_only(true)
+                .max_age(Duration::days(14));
 
+            let mut ref_cookie = Cookie::build(("ref", passport.refresh_token.clone()))
+                .path("/")
+                .same_site(cookie::SameSite::Lax)
+                .http_only(true)
+                .max_age(Duration::days(14));
+
+            if get_stage() == Stage::Prod {
+                act_cookie = act_cookie.secure(true);
+                ref_cookie = ref_cookie.secure(true);
+            };
+            let mut headers = HeaderMap::new();
+
+            headers.append(
+                header::SET_COOKIE,
+                HeaderValue::from_str(&act_cookie.to_string()).unwrap(),
+            );
+
+            headers.append(
+                header::SET_COOKIE,
+                HeaderValue::from_str(&ref_cookie.to_string()).unwrap(),
+            );
+
+            (StatusCode::OK, headers, "Login successful").into_response()
+        }
+        Err(e) => (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+    }
+}
 pub async fn adventurers_refresh_token<T1, T2>(
     State(authentication_use_case): State<Arc<AuthenticationUsecase<T1, T2>>>,
     jar: CookieJar,
@@ -63,13 +103,49 @@ where
 
 pub async fn guild_commanders_login<T1, T2>(
     State(authentication_use_case): State<Arc<AuthenticationUsecase<T1, T2>>>,
-    Json(loginModel): Json<LoginModel>,
+    Json(login_model): Json<LoginModel>,
 ) -> impl IntoResponse
 where
     T1: AdventurersRepository + Send + Sync,
     T2: GuildCommandersRepository + Send + Sync,
 {
-    unimplemented!()
+    match authentication_use_case
+        .guild_commander_login(login_model)
+        .await
+    {
+        Ok(passport) => {
+            let mut act_cookie = Cookie::build(("act", passport.access_token.clone()))
+                .path("/")
+                .same_site(cookie::SameSite::Lax)
+                .http_only(true)
+                .max_age(Duration::days(14));
+
+            let mut ref_cookie = Cookie::build(("ref", passport.refresh_token.clone()))
+                .path("/")
+                .same_site(cookie::SameSite::Lax)
+                .http_only(true)
+                .max_age(Duration::days(14));
+
+            if get_stage() == Stage::Prod {
+                act_cookie = act_cookie.secure(true);
+                ref_cookie = ref_cookie.secure(true);
+            };
+            let mut headers = HeaderMap::new();
+
+            headers.append(
+                header::SET_COOKIE,
+                HeaderValue::from_str(&act_cookie.to_string()).unwrap(),
+            );
+
+            headers.append(
+                header::SET_COOKIE,
+                HeaderValue::from_str(&ref_cookie.to_string()).unwrap(),
+            );
+
+            (StatusCode::OK, headers, "Login successful").into_response()
+        }
+        Err(e) => (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+    }
 }
 
 pub async fn guild_commanders_refresh_token<T1, T2>(
