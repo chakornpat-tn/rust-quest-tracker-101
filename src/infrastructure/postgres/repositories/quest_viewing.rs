@@ -1,5 +1,6 @@
 use anyhow::Result;
 use axum::async_trait;
+use diesel::prelude::*;
 use std::sync::Arc;
 
 use crate::{
@@ -8,6 +9,7 @@ use crate::{
         value_objects::board_checking_filter::BoardCheckingFilter,
     },
     infrastructure::postgres::postgres_connector::PgPoolSquad,
+    schema::{quest_adventurer_junction, quests},
 };
 
 pub struct QuestViewingPostgres {
@@ -23,12 +25,48 @@ impl QuestViewingPostgres {
 #[async_trait]
 impl QuestViewingRepository for QuestViewingPostgres {
     async fn view_details(&self, quest_id: i32) -> Result<QuestEntity> {
-        unimplemented!()
+        let mut conn = Arc::clone(&self.db_pool).get()?;
+
+        let res = quests::table
+            .filter(quests::id.eq(quest_id))
+            .filter(quests::deleted_at.is_null())
+            .select(QuestEntity::as_select())
+            .first::<QuestEntity>(&mut conn)?;
+
+        Ok(res)
     }
+
     async fn board_checking(&self, filter: &BoardCheckingFilter) -> Result<Vec<QuestEntity>> {
-        unimplemented!()
+        let mut conn = Arc::clone(&self.db_pool).get()?;
+
+        let mut query = quests::table
+            .filter(quests::deleted_at.is_null())
+            .into_boxed();
+
+        if let Some(name) = &filter.name {
+            query = query.filter(quests::name.ilike(format!("%{}%", name)));
+        }
+
+        if let Some(status) = &filter.status {
+            query = query.filter(quests::status.eq(status.to_string()));
+        }
+
+        let res = query
+            .select(QuestEntity::as_select())
+            .order_by(quests::created_at.desc())
+            .load::<QuestEntity>(&mut conn)?;
+
+        Ok(res)
     }
+
     async fn adventurer_counting(&self, quest_id: i32) -> Result<i64> {
-        unimplemented!()
+        let mut conn = Arc::clone(&self.db_pool).get()?;
+
+        let res = quest_adventurer_junction::table
+            .filter(quest_adventurer_junction::quest_id.eq(quest_id))
+            .count()
+            .get_result::<i64>(&mut conn)?;
+
+        Ok(res)
     }
 }
