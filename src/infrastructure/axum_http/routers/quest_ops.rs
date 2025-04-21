@@ -53,9 +53,9 @@ where
     {
         Ok(quest_id) => {
             let res = format!("Add Quest success with id: {}", quest_id);
-            (StatusCode::OK, res)
+            (StatusCode::OK, res).into_response()
         }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
@@ -75,9 +75,9 @@ where
     {
         Ok(quest_id) => {
             let res = format!("Edit Quest success with id: {}", quest_id);
-            (StatusCode::OK, res)
+            (StatusCode::OK, res).into_response()
         }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
@@ -96,8 +96,8 @@ where
     {
         Ok(()) => {
             let res = format!("Remove Quest success with id: {}", quest_id);
-            (StatusCode::OK, res)
+            (StatusCode::OK, res).into_response()
         }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }

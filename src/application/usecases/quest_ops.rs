@@ -44,6 +44,15 @@ where
         guild_commander_id: i32,
         edit_quest_model: EditQuestModel,
     ) -> Result<i32> {
+        let adventurer_count = self
+            .quest_viewing_repository
+            .adventurer_counting(quest_id)
+            .await?;
+
+        if adventurer_count > 0 {
+            return Err(anyhow::anyhow!("Quest has taken by adventurers."));
+        }
+
         let edit_quest_entity = edit_quest_model.to_entity(guild_commander_id);
 
         let res = self
@@ -55,6 +64,15 @@ where
     }
 
     pub async fn remove(&self, quest_id: i32, guild_commander_id: i32) -> Result<()> {
+         let adventurer_count = self
+            .quest_viewing_repository
+            .adventurer_counting(quest_id)
+            .await?;
+
+        if adventurer_count > 0 {
+            return Err(anyhow::anyhow!("Quest has taken by adventurers."));
+        }
+        
         self.quest_ops_repository
             .remove(quest_id, guild_commander_id)
             .await?;
