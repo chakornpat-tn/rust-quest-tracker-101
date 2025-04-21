@@ -1,4 +1,8 @@
-use anyhow::Result;
+use anyhow::{Ok, Result};
+use diesel::{
+    dsl::{delete, insert_into},
+    prelude::*,
+};
 use std::sync::Arc;
 
 use axum::async_trait;
@@ -9,6 +13,7 @@ use crate::{
         value_objects::quest_adventurer_junction::QuestAdventurerJunction,
     },
     infrastructure::postgres::postgres_connector::PgPoolSquad,
+    schema::quest_adventurer_junction,
 };
 
 pub struct CrewSwitchboardPostgres {
@@ -24,9 +29,22 @@ impl CrewSwitchboardPostgres {
 #[async_trait]
 impl CrewSwitchboardRepository for CrewSwitchboardPostgres {
     async fn join(&self, junction_body: QuestAdventurerJunction) -> Result<()> {
-        unimplemented!()
+        let mut conn = Arc::clone(&self.db_pool).get()?;
+
+        insert_into(quest_adventurer_junction::table)
+            .values(junction_body)
+            .execute(&mut conn)?;
+
+        Ok(())
     }
     async fn leave(&self, junction_body: QuestAdventurerJunction) -> Result<()> {
-        unimplemented!()
+        let mut conn = Arc::clone(&self.db_pool).get()?;
+
+        delete(quest_adventurer_junction::table)
+            .filter(quest_adventurer_junction::quest_id.eq(junction_body.quest_id))
+            .filter(quest_adventurer_junction::adventurer_id.eq(junction_body.adventurer_id))
+            .execute(&mut conn)?;
+
+        Ok(())
     }
 }
