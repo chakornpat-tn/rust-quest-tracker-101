@@ -8,7 +8,6 @@ use crate::{
         jwt_authentication::{
             self,
             authentication_model::LoginModel,
-            generate_token,
             jwt_model::{Claims, Passport, Roles},
         },
     },
